@@ -1,0 +1,11 @@
+[package]
+name = "cpuengine"
+version = "0.1.0"
+authors = ["bigmstone <dev@mattstone.io>"]
+edition = "2018"
+
+[dependencies]
+log = "*"
+image = "*"
+regex = "*"
+cgmath = "*"
