@@ -102,7 +102,7 @@ impl Object {
                 let y1 = (v1.y as f64 + 1.0) * height as f64 / 2.0;
                 let vertex0 = Vector3::new(x0 as u32, y0 as u32, 0 as u32);
                 let vertex1 = Vector3::new(x1 as u32, y1 as u32, 0 as u32);
-                let line = Line::new(vertex0, vertex1).unwrap();
+                let line = Line::new(vertex0, vertex1, [255, 255, 255]).unwrap();
                 line.render(image);
             }
         }

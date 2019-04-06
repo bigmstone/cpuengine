@@ -27,6 +27,6 @@ pub fn write_image(data: &mut Vec<Vec<[u8; 3]>>, width: u32, height: u32) {
         .expect("bob");
 }
 
-pub fn set_pixel(x: u32, y: u32, data: &mut Vec<Vec<[u8; 3]>>) {
-    data[x as usize][y as usize] = [255, 255, 255];
+pub fn set_pixel(x: u32, y: u32, data: &mut Vec<Vec<[u8; 3]>>, color: [u8; 3]) {
+    data[x as usize][y as usize] = color;
 }

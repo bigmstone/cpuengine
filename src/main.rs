@@ -18,5 +18,7 @@ fn main() {
         cpuengine::render_line(&args);
     } else if args[1] == "object" {
         cpuengine::render_obj(&args);
+    } else if args[1] == "triangle" {
+        cpuengine::render_triangle(&args);
     }
 }
