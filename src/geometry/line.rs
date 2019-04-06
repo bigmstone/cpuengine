@@ -36,7 +36,8 @@ impl Line {
                 x = self.vertex0.x as i32 - index;
                 y = self.vertex1.y as f64 + ((steps - index) as f64 * slope);
             }
-            png::set_pixel(x as u32, y as u32, data, self.color);
+
+            data[x as usize][y as usize] = self.color;
         }
     }
 }
