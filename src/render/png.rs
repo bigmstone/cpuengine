@@ -7,7 +7,7 @@ pub fn flatten(data: &mut Vec<Vec<[u8; 3]>>) -> Vec<u8> {
 
     for row in data {
         for column in row {
-            for item in column.into_iter() {
+            for item in column.iter_mut() {
                 flat_data.push(*item);
             }
         }

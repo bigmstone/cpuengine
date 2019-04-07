@@ -27,14 +27,14 @@ fn init() -> (Vec<Vec<[u8; 3]>>, u32, u32) {
     (data, width, height)
 }
 
-pub fn render_obj(args: &Vec<String>) {
+pub fn render_obj(args: &[String]) {
     let (mut data, width, height) = init();
     let object = obj::Object::new(args[2].clone()).unwrap();
     object.render(&mut data, width, height);
     png::write_image(&mut data, width, height);
 }
 
-pub fn render_triangle(args: &Vec<String>) {
+pub fn render_triangle(args: &[String]) {
     let (mut data, width, height) = init();
 
     let vertex0 = Vector3::new(
@@ -56,12 +56,14 @@ pub fn render_triangle(args: &Vec<String>) {
     );
 
     let triangle = Triangle::new(vertex0, vertex1, vertex2, COLOR).unwrap();
-    triangle.render(&mut data);
-    triangle.fill(&mut data);
+    triangle
+        .render(&mut data)
+        .expect("Error rendering triangle.");
+    triangle.fill(&mut data).expect("Error filling triangle");
     png::write_image(&mut data, width, height);
 }
 
-pub fn render_line(args: &Vec<String>) {
+pub fn render_line(args: &[String]) {
     let (mut data, width, height) = init();
     let vertex0 = Vector3::new(
         args[2].parse::<u32>().unwrap(),

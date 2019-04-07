@@ -22,13 +22,10 @@ impl Object {
         debug!("Parsing vertices");
         let vertices = Object::parse_vertices(&file_contents)?;
 
-        Ok(Object {
-            faces: faces,
-            vertices: vertices,
-        })
+        Ok(Object { faces, vertices })
     }
 
-    fn parse_faces(file_contents: &String) -> Result<Vec<[[u32; 3]; 3]>, Box<error::Error>> {
+    fn parse_faces(file_contents: &str) -> Result<Vec<[[u32; 3]; 3]>, Box<error::Error>> {
         let mut faces: Vec<[[u32; 3]; 3]> = Vec::new();
         let face_rex =
             Regex::new(r"f\s+(\d+)/(\d+)/(\d+)\s+(\d+)/(\d+)/(\d+)\s+(\d+)/(\d+)/(\d+)")?;
@@ -62,7 +59,7 @@ impl Object {
         Ok(faces)
     }
 
-    fn parse_vertices(file_contents: &String) -> Result<Vec<Vector3<f64>>, Box<error::Error>> {
+    fn parse_vertices(file_contents: &str) -> Result<Vec<Vector3<f64>>, Box<error::Error>> {
         let mut vertices: Vec<Vector3<f64>> = Vec::new();
         let vertex_rex = Regex::new(r"v\s+([0-9e\.-]+)\s+([0-9e\.-]+)\s+([0-9e\.-]+)")?;
         for line in file_contents.lines() {
@@ -86,8 +83,8 @@ impl Object {
     }
 
     pub fn render(&self, image: &mut Vec<Vec<[u8; 3]>>, width: u32, height: u32) {
-        let height = height as f64 - 1.0;
-        let width = width as f64 - 1.0;
+        let height = f64::from(height) - 1.0;
+        let width = f64::from(width) - 1.0;
         for face in &self.faces {
             for index in 0..3 {
                 let v0 = self.vertices[(face[index][0] - 1) as usize];
@@ -96,10 +93,10 @@ impl Object {
                 // let y0 = height / 2.0 + (v0.y * height / 2.0);
                 // let x1 = width / 2.0 + (v1.x * width / 2.0);
                 // let y1 = height / 2.0 + (v1.y * height / 2.0);
-                let x0 = (v0.x as f64 + 1.0) * width as f64 / 2.0;
-                let y0 = (v0.y as f64 + 1.0) * height as f64 / 2.0;
-                let x1 = (v1.x as f64 + 1.0) * width as f64 / 2.0;
-                let y1 = (v1.y as f64 + 1.0) * height as f64 / 2.0;
+                let x0 = (v0.x + 1.0) * width / 2.0;
+                let y0 = (v0.y + 1.0) * height / 2.0;
+                let x1 = (v1.x + 1.0) * width / 2.0;
+                let y1 = (v1.y + 1.0) * height / 2.0;
                 let vertex0 = Vector3::new(x0 as u32, y0 as u32, 0 as u32);
                 let vertex1 = Vector3::new(x1 as u32, y1 as u32, 0 as u32);
                 let line = Line::new(vertex0, vertex1, [255, 255, 255]).unwrap();

@@ -4,7 +4,7 @@ use cgmath::Vector3;
 
 use crate::geometry::Line;
 
-fn minmax(vectors: &Vec<Vector3<u32>>) -> (u32, u32, u32, u32) {
+fn minmax(vectors: &[Vector3<u32>]) -> (u32, u32, u32, u32) {
     let mut min_x = vectors[0].x;
     let mut max_x = vectors[0].y;
     let mut min_y = vectors[0].x;
@@ -42,12 +42,7 @@ impl Triangle {
         c: Vector3<u32>,
         color: [u8; 3],
     ) -> Result<Triangle, Box<error::Error>> {
-        let triangle = Triangle {
-            a: a,
-            b: b,
-            c: c,
-            color: color,
-        };
+        let triangle = Triangle { a, b, c, color };
         Ok(triangle)
     }
 

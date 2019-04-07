@@ -24,13 +24,13 @@ impl Line {
         let mut vertices_sorted_y: Vec<Vector3<u32>> = vec![vertex0, vertex1];
         vertices_sorted_y.sort_by(|a, b| a.y.cmp(&b.y));
         let line = Line {
-            vertex0: vertex0,
-            vertex1: vertex1,
+            vertex0,
+            vertex1,
             slope: Line::slope(vertex0, vertex1),
             y_intercept: Line::y_intercept(vertex0, vertex1),
-            vertices_sorted_x: vertices_sorted_x,
-            vertices_sorted_y: vertices_sorted_y,
-            color: color,
+            vertices_sorted_x,
+            vertices_sorted_y,
+            color,
         };
         Ok(line)
     }
@@ -38,41 +38,38 @@ impl Line {
     pub fn render(&self, data: &mut Vec<Vec<[u8; 3]>>) {
         let steps: i32 = self.vertex0.x as i32 - self.vertex1.x as i32;
         for index in 0..steps.abs() {
-            let x;
-            let y;
-            if self.vertex0.x < self.vertex1.x {
-                x = self.vertex0.x as i32 + index;
-                y = self.vertex0.y as f64 + (index as f64 * self.slope);
+            let (x, y) = if self.vertex0.x < self.vertex1.x {
+                (
+                    self.vertex0.x as i32 + index,
+                    f64::from(self.vertex0.y) + (f64::from(index) * self.slope),
+                )
             } else {
-                x = self.vertex0.x as i32 - index;
-                y = self.vertex1.y as f64 + ((steps - index) as f64 * self.slope);
-            }
+                (
+                    self.vertex0.x as i32 - index,
+                    f64::from(self.vertex1.y) + (f64::from(steps - index) * self.slope),
+                )
+            };
 
             data[x as usize][y as usize] = self.color;
         }
     }
 
     fn slope(vertex0: Vector3<u32>, vertex1: Vector3<u32>) -> f64 {
-        (vertex0.y as i32 - vertex1.y as i32) as f64 / (vertex0.x as i32 - vertex1.x as i32) as f64
+        f64::from(vertex0.y as i32 - vertex1.y as i32)
+            / f64::from(vertex0.x as i32 - vertex1.x as i32)
     }
 
     fn y_intercept(vertex0: Vector3<u32>, vertex1: Vector3<u32>) -> u32 {
-        (vertex0.y as f64 - (vertex0.x as f64 * Line::slope(vertex0, vertex1))) as u32
+        (f64::from(vertex0.y) - (f64::from(vertex0.x) * Line::slope(vertex0, vertex1))) as u32
     }
 
     pub fn in_line(&self, vertex: Vector3<u32>) -> bool {
-        let mut result = true;
-        //Check X bounds
         if vertex.x < self.vertices_sorted_x[0].x || vertex.x > self.vertices_sorted_x[1].x {
-            result = false;
+            // Check X bounds
+            false
+        } else {
+            !(vertex.y < self.vertices_sorted_y[0].y || vertex.y > self.vertices_sorted_y[1].y)
         }
-
-        // Check Y bounds
-        if vertex.y < self.vertices_sorted_y[0].y || vertex.y > self.vertices_sorted_y[1].y {
-            result = false;
-        }
-
-        result
     }
 
     pub fn intersect(&self, line: &Line) -> Result<Vector3<u32>, IntersectError> {
@@ -85,8 +82,9 @@ impl Line {
         // line0.slope * x + line0.y_intercept = line1.slope * x + line1.y_intercept
         // line0.slope * x - line1.slope * x = line1.y_intercept - line0.y_intercept
         // line0.slope-line1.slope*x = line1.y_intercept-line0.y_intercept
-        let x = (self.y_intercept as f64 - line.y_intercept as f64) / (line.slope - self.slope);
-        let y = self.slope * x + self.y_intercept as f64;
+        let x =
+            (f64::from(self.y_intercept) - f64::from(line.y_intercept)) / (line.slope - self.slope);
+        let y = self.slope * x + f64::from(self.y_intercept);
 
         let x = x as u32;
         let y = y as u32;
@@ -180,16 +178,13 @@ mod tests {
         let line1 = self::Line::new(line1_vertex0, line1_vertex1, color).unwrap();
 
         let intersect = line0.intersect(&line1);
-        match intersect {
-            Ok(_) => panic!("Should not intersect"),
-            Err(err) => {}
-        };
+        if intersect.is_ok() {
+            panic!("Should not intersect")
+        }
 
         let intersect = line1.intersect(&line0);
-
-        match intersect {
-            Ok(_) => panic!("Should not intersect"),
-            Err(_) => {}
-        };
+        if intersect.is_ok() {
+            panic!("Should not intersect")
+        }
     }
 }
