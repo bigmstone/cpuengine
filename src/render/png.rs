@@ -5,8 +5,6 @@ use image::{png, ColorType};
 pub fn flatten(data: &mut Vec<Vec<[u8; 3]>>) -> Vec<u8> {
     let mut flat_data: Vec<u8> = Vec::new();
 
-    data.reverse();
-
     for row in data {
         for column in row {
             for item in column.into_iter() {
