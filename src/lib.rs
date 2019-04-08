@@ -14,8 +14,8 @@ const COLOR: [u8; 3] = [255, 0, 0];
 
 fn init() -> (Vec<Vec<[u8; 3]>>, u32, u32) {
     debug!("Starting render");
-    let width = 200;
-    let height = 200;
+    let width = 2000;
+    let height = 2000;
     let mut data: Vec<Vec<[u8; 3]>> = Vec::new();
     for _ in 0..height {
         let mut row: Vec<[u8; 3]> = Vec::new();
@@ -48,7 +48,7 @@ pub fn render_triangle_set(_args: &[String]) {
     triangle
         .render(&mut data)
         .expect("Error rendering triangle.");
-    // triangle.fill(&mut data).expect("Error filling triangle");
+    triangle.fill(&mut data).expect("Error filling triangle");
 
     // Triangle 2
     let (vertex0, vertex1, vertex2) = (
@@ -61,7 +61,7 @@ pub fn render_triangle_set(_args: &[String]) {
     triangle
         .render(&mut data)
         .expect("Error rendering triangle.");
-    // triangle.fill(&mut data).expect("Error filling triangle");
+    triangle.fill(&mut data).expect("Error filling triangle");
 
     // Triangle 3
     let (vertex0, vertex1, vertex2) = (
@@ -74,7 +74,7 @@ pub fn render_triangle_set(_args: &[String]) {
     triangle
         .render(&mut data)
         .expect("Error rendering triangle.");
-    // triangle.fill(&mut data).expect("Error filling triangle");
+    triangle.fill(&mut data).expect("Error filling triangle");
     png::write_image(&mut data, width, height);
 }
 

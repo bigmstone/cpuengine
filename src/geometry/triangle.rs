@@ -3,6 +3,7 @@ use std::error;
 use cgmath::Vector3;
 
 use crate::geometry::Line;
+use crate::render::png;
 
 fn minmax(vectors: &[Vector3<f64>]) -> (f64, f64, f64, f64) {
     let mut min_x = vectors[0].x;
@@ -49,12 +50,9 @@ impl Triangle {
     fn build_lines(&self) -> (Line, Line, Line) {
         let vertices = self.sort_vertices();
         (
-            // Line::new(vertices[0], vertices[1], self.color).unwrap(),
-            // Line::new(vertices[1], vertices[2], self.color).unwrap(),
-            // Line::new(vertices[2], vertices[0], self.color).unwrap(),
-            Line::new(vertices[0], vertices[1], [0, 255, 0]).unwrap(),
-            Line::new(vertices[1], vertices[2], [0, 255, 0]).unwrap(),
-            Line::new(vertices[2], vertices[0], [255, 0, 0]).unwrap(),
+            Line::new(vertices[0], vertices[1], self.color).unwrap(),
+            Line::new(vertices[1], vertices[2], self.color).unwrap(),
+            Line::new(vertices[2], vertices[0], self.color).unwrap(),
         )
     }
 
@@ -72,20 +70,39 @@ impl Triangle {
         Ok(true)
     }
 
+    fn barycentric(&self, vertex: Vector3<f64>) -> Vector3<f64> {
+        let u: Vector3<f64> = Vector3::new(
+            self.c.x - self.a.x,
+            self.b.x - self.a.x,
+            self.a.x - vertex.x,
+        )
+        .cross(Vector3::new(
+            self.c.y - self.a.y,
+            self.b.y - self.a.y,
+            self.a.y - vertex.y,
+        ));
+
+        if u.y < 1. {
+            return Vector3::new(-1., 1., 1.);
+        }
+        Vector3::new(1. - (u.x + u.y) / u.z, u.y / u.z, u.x / u.z)
+    }
+
     pub fn fill(&self, image: &mut Vec<Vec<[u8; 3]>>) -> Result<bool, Box<error::Error>> {
         let vertices = self.sort_vertices();
-        let (line0, _line1, line2) = self.build_lines();
 
-        for index in 0..(vertices[2].y - vertices[0].y) as i32 {
-            let x0 = vertices[0].x + (line0.slope * f64::from(index));
-            let x1 = vertices[2].x - (line2.slope * f64::from(index));
-            let line = Line::new(
-                Vector3::new(x0, vertices[0].y + f64::from(index), 0.),
-                Vector3::new(x1, vertices[0].y + f64::from(index), 0.),
-                self.color,
-            )?;
+        let (min_x, max_x, min_y, max_y) = self::minmax(&vertices);
 
-            line.render(image);
+        for x in min_x as i32..max_x as i32 {
+            for y in min_y as i32..max_y as i32 {
+                let vertex = Vector3::new(f64::from(x), f64::from(y), 0.);
+                let barycenter = self.barycentric(vertex);
+                if barycenter.x < 0. || barycenter.y < 0. || barycenter.z < 0. {
+                    continue;
+                }
+
+                png::write_pixel(image, x as u32, y as u32, self.color);
+            }
         }
 
         Ok(true)
