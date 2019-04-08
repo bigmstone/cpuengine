@@ -97,8 +97,8 @@ impl Object {
                 let y0 = (v0.y + 1.0) * height / 2.0;
                 let x1 = (v1.x + 1.0) * width / 2.0;
                 let y1 = (v1.y + 1.0) * height / 2.0;
-                let vertex0 = Vector3::new(x0 as u32, y0 as u32, 0 as u32);
-                let vertex1 = Vector3::new(x1 as u32, y1 as u32, 0 as u32);
+                let vertex0: Vector3<f64> = Vector3::new(x0, y0, 0.);
+                let vertex1: Vector3<f64> = Vector3::new(x1, y1, 0.);
                 let line = Line::new(vertex0, vertex1, [255, 255, 255]).unwrap();
                 line.render(image);
             }
