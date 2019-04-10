@@ -23,6 +23,7 @@ pub fn write_pixel(data: &mut Vec<Vec<[u8; 3]>>, x: u32, y: u32, color: [u8; 3])
 }
 
 pub fn write_image(data: &mut Vec<Vec<[u8; 3]>>, width: u32, height: u32) {
+    println!("Writing image...");
     let flat_data = flatten(data);
     let buffer = File::create("foo.png").unwrap();
     let encoder = png::PNGEncoder::new(buffer);

@@ -1,3 +1,4 @@
+mod common;
 mod geometry;
 mod model;
 mod render;
@@ -10,12 +11,12 @@ use geometry::{Line, Triangle};
 use model::obj;
 use render::png;
 
-const COLOR: [u8; 3] = [255, 0, 0];
+const COLOR: [u8; 3] = [255, 255, 255];
 
 fn init() -> (Vec<Vec<[u8; 3]>>, u32, u32) {
     debug!("Starting render");
-    let width = 2000;
-    let height = 2000;
+    let width = 1000;
+    let height = 1000;
     let mut data: Vec<Vec<[u8; 3]>> = Vec::new();
     for _ in 0..height {
         let mut row: Vec<[u8; 3]> = Vec::new();
@@ -30,7 +31,9 @@ fn init() -> (Vec<Vec<[u8; 3]>>, u32, u32) {
 pub fn render_obj(args: &[String]) {
     let (mut data, width, height) = init();
     let object = obj::Object::new(args[2].clone()).unwrap();
-    object.render(&mut data, width, height);
+    object
+        .render(&mut data, width, height)
+        .expect("Error rendering object.");
     png::write_image(&mut data, width, height);
 }
 

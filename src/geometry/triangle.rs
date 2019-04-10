@@ -82,9 +82,10 @@ impl Triangle {
             self.a.y - vertex.y,
         ));
 
-        if u.y < 1. {
+        if u.y.abs() < 1. {
             return Vector3::new(-1., 1., 1.);
         }
+
         Vector3::new(1. - (u.x + u.y) / u.z, u.y / u.z, u.x / u.z)
     }
 
@@ -93,8 +94,8 @@ impl Triangle {
 
         let (min_x, max_x, min_y, max_y) = self::minmax(&vertices);
 
-        for x in min_x as i32..max_x as i32 {
-            for y in min_y as i32..max_y as i32 {
+        for x in min_x as i32 - 1..=max_x as i32 + 1 {
+            for y in min_y as i32 - 1..=max_y as i32 + 1 {
                 let vertex = Vector3::new(f64::from(x), f64::from(y), 0.);
                 let barycenter = self.barycentric(vertex);
                 if barycenter.x < 0. || barycenter.y < 0. || barycenter.z < 0. {
