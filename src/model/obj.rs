@@ -1,11 +1,12 @@
 use std::error;
 use std::fs;
 
-use cgmath::Vector3;
+use cgmath::{InnerSpace, Vector3};
 use log::debug;
 use regex::Regex;
 
-use crate::geometry::Line;
+use crate::common::render;
+use crate::geometry::Triangle;
 
 pub struct Object {
     pub faces: Vec<[[u32; 3]; 3]>,
@@ -82,26 +83,45 @@ impl Object {
         Ok(vertices)
     }
 
-    pub fn render(&self, image: &mut Vec<Vec<[u8; 3]>>, width: u32, height: u32) {
+    fn calc_intensity(vertices: &[Vector3<f64>]) -> f64 {
+        let n: Vector3<f64> = (vertices[2] - vertices[0]).cross(vertices[1] - vertices[0]);
+        let n = n.normalize();
+
+        let light_direction: Vector3<f64> = Vector3::new(0., 0., -1.);
+
+        n.dot(light_direction)
+    }
+
+    pub fn render(
+        &self,
+        image: &mut Vec<Vec<[u8; 3]>>,
+        width: u32,
+        height: u32,
+    ) -> Result<bool, Box<error::Error>> {
         let height = f64::from(height) - 1.0;
         let width = f64::from(width) - 1.0;
         for face in &self.faces {
-            for index in 0..3 {
-                let v0 = self.vertices[(face[index][0] - 1) as usize];
-                let v1 = self.vertices[(face[(index + 1) % 3][0] - 1) as usize];
-                // let x0 = width / 2.0 + (v0.x * width / 2.0);
-                // let y0 = height / 2.0 + (v0.y * height / 2.0);
-                // let x1 = width / 2.0 + (v1.x * width / 2.0);
-                // let y1 = height / 2.0 + (v1.y * height / 2.0);
-                let x0 = (v0.x + 1.0) * width / 2.0;
-                let y0 = (v0.y + 1.0) * height / 2.0;
-                let x1 = (v1.x + 1.0) * width / 2.0;
-                let y1 = (v1.y + 1.0) * height / 2.0;
-                let vertex0 = Vector3::new(x0 as u32, y0 as u32, 0 as u32);
-                let vertex1 = Vector3::new(x1 as u32, y1 as u32, 0 as u32);
-                let line = Line::new(vertex0, vertex1, [255, 255, 255]).unwrap();
-                line.render(image);
+            let mut vertices: Vec<Vector3<f64>> = Vec::new();
+
+            for vertex in face {
+                vertices.push(self.vertices[(vertex[0] - 1) as usize]);
             }
+
+            let intensity = Object::calc_intensity(&vertices);
+
+            if intensity <= 0. {
+                continue;
+            }
+
+            let color = render::color([255, 255, 255], intensity);
+
+            for vertex in &mut vertices {
+                vertex.x = (vertex.x + 1.) * width / 2.0;
+                vertex.y = (vertex.y + 1.) * height / 2.0;
+            }
+
+            Triangle::new(vertices[0], vertices[1], vertices[2], color)?.fill(image)?;
         }
+        Ok(true)
     }
 }

@@ -9,7 +9,7 @@ jobs:
       - checkout
       - restore_cache:
           keys:
-            - cpuengine{{ arch }}-{{ checksum "Cargo.lock" }}
+            - cpu-engine-{{ arch }}-{{ checksum "Cargo.lock" }}
       - run:
           name: Install Cippy
           command: rustup component add clippy
@@ -17,7 +17,7 @@ jobs:
           name: Check
           command: cargo check
       - save_cache:
-          key: cpuengine-{{ arch }}-{{ checksum "Cargo.lock" }}
+          key: cpu-engine-{{ arch }}-{{ checksum "Cargo.lock" }}
           paths:
             - target/
       - run:
