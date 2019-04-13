@@ -2,16 +2,25 @@ use std::error;
 use std::fs;
 
 use cgmath::{InnerSpace, Vector3};
+use image::open;
 use log::debug;
-use regex::Regex;
 
 use crate::common::render;
 use crate::geometry::Triangle;
 use crate::render::Renderer;
 
+pub struct Face {
+    pub vertex: u32,
+    pub texture: u32,
+    pub normal: u32,
+}
+
 pub struct Object {
-    pub faces: Vec<[[u32; 3]; 3]>,
+    pub faces: Vec<Vec<Face>>,
     pub vertices: Vec<Vector3<f64>>,
+    pub normals: Vec<Vector3<f64>>,
+    pub textures: Vec<Vector3<f64>>,
+    pub texture: image::RgbImage,
 }
 
 impl Object {
@@ -19,69 +28,80 @@ impl Object {
         debug!("Loading object: {}", path);
         let file_contents = fs::read_to_string(path)?;
 
-        debug!("Parsing Faces");
-        let faces = Object::parse_faces(&file_contents)?;
-        debug!("Parsing vertices");
-        let vertices = Object::parse_vertices(&file_contents)?;
-
-        Ok(Object { faces, vertices })
-    }
-
-    fn parse_faces(file_contents: &str) -> Result<Vec<[[u32; 3]; 3]>, Box<error::Error>> {
-        let mut faces: Vec<[[u32; 3]; 3]> = Vec::new();
-        let face_rex =
-            Regex::new(r"f\s+(\d+)/(\d+)/(\d+)\s+(\d+)/(\d+)/(\d+)\s+(\d+)/(\d+)/(\d+)")?;
-        for line in file_contents.lines() {
-            //Extracts obj face line: f 266/1335/266 679/696/679 27/8/27
-            let face = face_rex.captures(&line);
-            let face = match face {
-                None => continue,
-                Some(result) => result,
-            };
-
-            faces.push([
-                [
-                    face[1].parse::<u32>()?,
-                    face[2].parse::<u32>()?,
-                    face[3].parse::<u32>()?,
-                ],
-                [
-                    face[4].parse::<u32>()?,
-                    face[5].parse::<u32>()?,
-                    face[6].parse::<u32>()?,
-                ],
-                [
-                    face[7].parse::<u32>()?,
-                    face[8].parse::<u32>()?,
-                    face[9].parse::<u32>()?,
-                ],
-            ]);
-        }
-
-        Ok(faces)
-    }
-
-    fn parse_vertices(file_contents: &str) -> Result<Vec<Vector3<f64>>, Box<error::Error>> {
+        let mut faces: Vec<Vec<Face>> = Vec::new();
         let mut vertices: Vec<Vector3<f64>> = Vec::new();
-        let vertex_rex = Regex::new(r"v\s+([0-9e\.-]+)\s+([0-9e\.-]+)\s+([0-9e\.-]+)")?;
-        for line in file_contents.lines() {
-            //Extracts vertex line: v -0.000581696 -0.734665 -0.623267
-            let vertex = vertex_rex.captures(&line);
-            let vertex = match vertex {
-                None => {
-                    continue;
-                }
-                Some(result) => result,
-            };
+        let mut textures: Vec<Vector3<f64>> = Vec::new();
+        let mut normals: Vec<Vector3<f64>> = Vec::new();
 
-            vertices.push(Vector3::new(
-                vertex[1].parse::<f64>()?,
-                vertex[2].parse::<f64>()?,
-                vertex[3].parse::<f64>()?,
-            ));
+        for line in file_contents.lines() {
+            let mut line: Vec<&str> = line.split_whitespace().collect();
+
+            if line.is_empty() {
+                continue;
+            }
+
+            let line_type = line.remove(0);
+
+            match line_type {
+                "f" => faces.push(Object::parse_face(&line)),
+                "vt" => textures.push(Vector3::new(
+                    line[0].parse::<f64>().unwrap(),
+                    line[1].parse::<f64>().unwrap(),
+                    line[2].parse::<f64>().unwrap(),
+                )),
+                "vn" => normals.push(Vector3::new(
+                    line[0].parse::<f64>().unwrap(),
+                    line[1].parse::<f64>().unwrap(),
+                    line[2].parse::<f64>().unwrap(),
+                )),
+                "v" => vertices.push(Vector3::new(
+                    line[0].parse::<f64>().unwrap(),
+                    line[1].parse::<f64>().unwrap(),
+                    line[2].parse::<f64>().unwrap(),
+                )),
+                _ => {}
+            }
         }
 
-        Ok(vertices)
+        Ok(Object {
+            faces,
+            vertices,
+            normals,
+            textures,
+            texture: open("./african_head_diffuse.tga").unwrap().to_rgb(),
+        })
+    }
+
+    fn parse_face(line: &[&str]) -> Vec<Face> {
+        let mut face: Vec<Face> = Vec::new();
+        for reference in line {
+            let reference: Vec<&str> = reference.split('/').collect();
+            match reference.len() {
+                1 => {
+                    face.push(Face {
+                        vertex: reference[0].parse::<u32>().unwrap(),
+                        texture: 0 as u32,
+                        normal: 0 as u32,
+                    });
+                }
+                2 => {
+                    face.push(Face {
+                        vertex: reference[0].parse::<u32>().unwrap(),
+                        texture: reference[1].parse::<u32>().unwrap(),
+                        normal: 0 as u32,
+                    });
+                }
+                3 => {
+                    face.push(Face {
+                        vertex: reference[0].parse::<u32>().unwrap(),
+                        texture: reference[1].parse::<u32>().unwrap(),
+                        normal: reference[2].parse::<u32>().unwrap(),
+                    });
+                }
+                _ => {}
+            }
+        }
+        face
     }
 
     fn calc_intensity(vertices: &[Vector3<f64>]) -> f64 {
@@ -93,13 +113,21 @@ impl Object {
         n.dot(light_direction)
     }
 
+    fn get_texture(&self, face: &[Face]) {
+        let mut texture: Vec<Vector3<f64>> = Vec::new();
+        for vertex in face {
+            texture.push(self.textures[(vertex.texture - 1) as usize]);
+        }
+        debug!("Textures: {:#?}", texture);
+    }
+
     pub fn render(&self, renderer: &mut impl Renderer) -> Result<bool, Box<error::Error>> {
         let (width, height) = renderer.get_size();
         for face in &self.faces {
             let mut vertices: Vec<Vector3<f64>> = Vec::new();
 
             for vertex in face {
-                vertices.push(self.vertices[(vertex[0] - 1) as usize]);
+                vertices.push(self.vertices[(vertex.vertex - 1) as usize]);
             }
 
             let intensity = Object::calc_intensity(&vertices);
@@ -107,7 +135,7 @@ impl Object {
             if intensity <= 0. {
                 continue;
             }
-
+            self.get_texture(face);
             let color = render::color([255, 255, 255], intensity);
 
             for vertex in &mut vertices {
