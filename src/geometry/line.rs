@@ -2,6 +2,7 @@ use std::error;
 use std::fmt;
 
 use cgmath::Vector3;
+use log::debug;
 
 use crate::render::Renderer;
 
@@ -76,10 +77,10 @@ impl Line {
     }
 
     pub fn intersect(&self, line: &Line) -> Result<Vector3<f64>, IntersectError> {
-        println!("Slope 0: {}", self.slope);
-        println!("Slope 1: {}", line.slope);
-        println!("Line 0 Y Intercept: {}", self.y_intercept);
-        println!("Line 1 Y Intercept: {}", line.y_intercept);
+        debug!("Slope 0: {}", self.slope);
+        debug!("Slope 1: {}", line.slope);
+        debug!("Line 0 Y Intercept: {}", self.y_intercept);
+        debug!("Line 1 Y Intercept: {}", line.y_intercept);
 
         // Mx+B=y=Mx+B
         // line0.slope * x + line0.y_intercept = line1.slope * x + line1.y_intercept
@@ -89,7 +90,7 @@ impl Line {
         let y = self.slope * x + self.y_intercept;
 
         let intersect: Vector3<f64> = Vector3::new(x, y, 0.);
-        println!("Intersect: {:#?}", intersect);
+        debug!("Intersect: {:#?}", intersect);
         if !self.in_line(intersect) || !line.in_line(intersect) {
             return Err(IntersectError);
         }
