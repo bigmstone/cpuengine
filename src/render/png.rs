@@ -2,6 +2,7 @@ use std::fs::File;
 
 use cgmath::Vector3;
 use image::{png, ColorType};
+use log::debug;
 
 use crate::render::Renderer;
 
@@ -30,7 +31,7 @@ impl Renderer for PNG {
     }
 
     fn render(&mut self) {
-        println!("Writing image...");
+        debug!("Writing image.");
         let flat_data = flatten(&mut self.image);
         let buffer = File::create("foo.png").unwrap();
         let encoder = png::PNGEncoder::new(buffer);

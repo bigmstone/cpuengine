@@ -1,17 +1,10 @@
-mod logger;
-
 use std::env;
 
-use log::{LevelFilter, SetLoggerError};
-
-static LOGGER: logger::SimpleLogger = logger::SimpleLogger;
-
-pub fn init() -> Result<(), SetLoggerError> {
-    log::set_logger(&LOGGER).map(|()| log::set_max_level(LevelFilter::Debug))
-}
+use env_logger;
 
 fn main() {
-    init().expect("Error initializing render.");
+    env_logger::init();
+
     let args: Vec<String> = env::args().collect();
 
     if args[1] == "line" {
