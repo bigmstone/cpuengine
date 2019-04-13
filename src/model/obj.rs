@@ -7,6 +7,7 @@ use regex::Regex;
 
 use crate::common::render;
 use crate::geometry::Triangle;
+use crate::render::Renderer;
 
 pub struct Object {
     pub faces: Vec<[[u32; 3]; 3]>,
@@ -92,14 +93,8 @@ impl Object {
         n.dot(light_direction)
     }
 
-    pub fn render(
-        &self,
-        image: &mut Vec<Vec<[u8; 3]>>,
-        width: u32,
-        height: u32,
-    ) -> Result<bool, Box<error::Error>> {
-        let height = f64::from(height) - 1.0;
-        let width = f64::from(width) - 1.0;
+    pub fn render(&self, renderer: &mut impl Renderer) -> Result<bool, Box<error::Error>> {
+        let (width, height) = renderer.get_size();
         for face in &self.faces {
             let mut vertices: Vec<Vector3<f64>> = Vec::new();
 
@@ -116,11 +111,11 @@ impl Object {
             let color = render::color([255, 255, 255], intensity);
 
             for vertex in &mut vertices {
-                vertex.x = (vertex.x + 1.) * width / 2.0;
-                vertex.y = (vertex.y + 1.) * height / 2.0;
+                vertex.x = (vertex.x + 1.) * f64::from(width) / 2.0;
+                vertex.y = (vertex.y + 1.) * f64::from(height) / 2.0;
             }
 
-            Triangle::new(vertices[0], vertices[1], vertices[2], color)?.fill(image)?;
+            Triangle::new(vertices[0], vertices[1], vertices[2], color)?.fill(renderer)?;
         }
         Ok(true)
     }
