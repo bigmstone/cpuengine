@@ -3,7 +3,7 @@ use std::error;
 use cgmath::Vector3;
 
 use crate::geometry::Line;
-use crate::render::png;
+use crate::render::Renderer;
 
 fn minmax(vectors: &[Vector3<f64>]) -> (f64, f64, f64, f64) {
     let mut min_x = vectors[0].x;
@@ -62,11 +62,11 @@ impl Triangle {
         vertices
     }
 
-    pub fn render(&self, image: &mut Vec<Vec<[u8; 3]>>) -> Result<bool, Box<error::Error>> {
+    pub fn render(&self, renderer: &mut impl Renderer) -> Result<bool, Box<error::Error>> {
         let (line0, line1, line2) = self.build_lines();
-        line0.render(image);
-        line1.render(image);
-        line2.render(image);
+        line0.render(renderer);
+        line1.render(renderer);
+        line2.render(renderer);
         Ok(true)
     }
 
@@ -82,14 +82,14 @@ impl Triangle {
             self.a.y - vertex.y,
         ));
 
-        if u.y.abs() < 1. {
+        if u.z.abs() < 1. {
             return Vector3::new(-1., 1., 1.);
         }
 
         Vector3::new(1. - (u.x + u.y) / u.z, u.y / u.z, u.x / u.z)
     }
 
-    pub fn fill(&self, image: &mut Vec<Vec<[u8; 3]>>) -> Result<bool, Box<error::Error>> {
+    pub fn fill(&self, renderer: &mut impl Renderer) -> Result<bool, Box<error::Error>> {
         let vertices = self.sort_vertices();
 
         let (min_x, max_x, min_y, max_y) = self::minmax(&vertices);
@@ -101,8 +101,11 @@ impl Triangle {
                 if barycenter.x < 0. || barycenter.y < 0. || barycenter.z < 0. {
                     continue;
                 }
+                let z = self.a.z * barycenter.x + self.b.z * barycenter.y + self.c.z * barycenter.z;
 
-                png::write_pixel(image, x as u32, y as u32, self.color);
+                let pixel: Vector3<f64> = Vector3::new(f64::from(x), f64::from(y), z);
+
+                renderer.set_pixel(pixel, self.color);
             }
         }
 

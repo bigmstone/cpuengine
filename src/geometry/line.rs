@@ -3,7 +3,7 @@ use std::fmt;
 
 use cgmath::Vector3;
 
-use crate::render::png;
+use crate::render::Renderer;
 
 pub struct Line {
     pub vertex0: Vector3<f64>,
@@ -37,7 +37,7 @@ impl Line {
         Ok(line)
     }
 
-    pub fn render(&self, data: &mut Vec<Vec<[u8; 3]>>) {
+    pub fn render(&self, renderer: &mut impl Renderer) {
         let steps: f64 = self.vertex0.x - self.vertex1.x;
         for index in 0..steps.abs() as u32 {
             let (x, y) = if self.vertex0.x < self.vertex1.x {
@@ -52,7 +52,9 @@ impl Line {
                 )
             };
 
-            png::write_pixel(data, x as u32, y as u32, self.color);
+            let pixel: Vector3<f64> = Vector3::new(x, y, 0.0);
+
+            renderer.set_pixel(pixel, self.color);
         }
     }
 

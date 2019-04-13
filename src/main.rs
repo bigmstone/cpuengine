@@ -20,7 +20,5 @@ fn main() {
         cpuengine::render_obj(&args);
     } else if args[1] == "triangle" {
         cpuengine::render_triangle(&args);
-    } else if args[1] == "triangle-set" {
-        cpuengine::render_triangle_set(&args);
     }
 }
