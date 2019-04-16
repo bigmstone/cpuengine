@@ -1,4 +1,3 @@
-mod common;
 mod geometry;
 mod model;
 mod render;
@@ -16,8 +15,8 @@ const COLOR: [u8; 3] = [255, 255, 255];
 
 fn init() -> PNG {
     debug!("Starting render");
-    let width = 1000;
-    let height = 1000;
+    let width = 1024;
+    let height = 1024;
     Renderer::new(width, height)
 }
 
@@ -51,13 +50,10 @@ pub fn render_triangle(args: &[String]) {
         ),
     );
 
-    let triangle = Triangle::new(vertex0, vertex1, vertex2, COLOR).unwrap();
+    let triangle = Triangle::new(vertex0, vertex1, vertex2, vec![COLOR]).unwrap();
     triangle
         .render(&mut renderer)
         .expect("Error rendering triangle.");
-    triangle
-        .fill(&mut renderer)
-        .expect("Error filling triangle");
     renderer.render();
 }
 

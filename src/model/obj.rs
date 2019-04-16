@@ -2,11 +2,12 @@ use std::error;
 use std::fs;
 
 use cgmath::{InnerSpace, Vector3};
-use image::open;
+use image::{open, DynamicImage, FilterType, GenericImageView};
 use log::debug;
 
-use crate::common::render;
+use crate::geometry::common::minmax;
 use crate::geometry::Triangle;
+use crate::render::common as render_common;
 use crate::render::Renderer;
 
 pub struct Face {
@@ -20,7 +21,7 @@ pub struct Object {
     pub vertices: Vec<Vector3<f64>>,
     pub normals: Vec<Vector3<f64>>,
     pub textures: Vec<Vector3<f64>>,
-    pub texture: image::RgbImage,
+    pub texture: DynamicImage,
 }
 
 impl Object {
@@ -68,7 +69,7 @@ impl Object {
             vertices,
             normals,
             textures,
-            texture: open("./african_head_diffuse.tga").unwrap().to_rgb(),
+            texture: open("./african_head_diffuse.tga").unwrap().flipv(),
         })
     }
 
@@ -113,21 +114,81 @@ impl Object {
         n.dot(light_direction)
     }
 
-    fn get_texture(&self, face: &[Face]) {
-        let mut texture: Vec<Vector3<f64>> = Vec::new();
-        for vertex in face {
-            texture.push(self.textures[(vertex.texture - 1) as usize]);
+    fn get_texture(
+        &self,
+        vertices: &[Vector3<f64>],
+        texture_vertices: &[Vector3<f64>],
+    ) -> Vec<[u8; 3]> {
+        let (min, max) = minmax(vertices);
+        let (texture_min, texture_max) = minmax(texture_vertices);
+        let width = self.texture.width();
+        let height = self.texture.height();
+
+        let texture = self
+            .texture
+            .clone()
+            .crop(
+                (f64::from(width) * texture_min.x) as u32,
+                (f64::from(height) * texture_min.y) as u32,
+                ((f64::from(width) * texture_max.x) - (f64::from(width) * texture_min.x)) as u32,
+                ((f64::from(height) * texture_max.y) - (f64::from(height) * texture_min.y)) as u32,
+            )
+            .resize_exact(
+                (1024. * max.x - 1024. * min.x) as u32,
+                (1024. * max.y - 1024. * min.y) as u32,
+                FilterType::Nearest,
+            );
+
+        debug!("Texture Width, Height: {}, {}", width, height);
+        debug!(
+            "Texture Crop X, Y: {}, {}",
+            f64::from(width) * texture_min.x,
+            f64::from(height) * texture_min.y
+        );
+        debug!(
+            "Texture Crop Width, Height: {}, {}",
+            ((f64::from(width) * texture_max.x) - (f64::from(width) * texture_min.x)),
+            ((f64::from(height) * texture_max.y) - (f64::from(height) * texture_min.y))
+        );
+        debug!(
+            "Resize Width, Height: {}, {}",
+            (1000. * max.x - 1000. * min.x) as u32,
+            (1000. * max.y - 1000. * min.y) as u32,
+        );
+        debug!("Face Min, Max: {:#?}, {:#?}", min, max);
+
+        let color = texture.as_rgb8().unwrap().clone().into_vec();
+
+        //         if color.is_empty() {
+        //             return vec![[0, 0, 0]];
+        //         }
+
+        debug!("Color: {:#?}", color);
+
+        self.structure_texture(&color)
+    }
+
+    fn structure_texture(&self, texture: &[u8]) -> Vec<[u8; 3]> {
+        let mut result: Vec<[u8; 3]> = Vec::new();
+        for index in 0..texture.len() / 3 {
+            result.push([
+                texture[index * 3],
+                texture[index * 3 + 1],
+                texture[index * 3 + 2],
+            ]);
         }
-        debug!("Textures: {:#?}", texture);
+        result
     }
 
     pub fn render(&self, renderer: &mut impl Renderer) -> Result<bool, Box<error::Error>> {
         let (width, height) = renderer.get_size();
         for face in &self.faces {
             let mut vertices: Vec<Vector3<f64>> = Vec::new();
+            let mut texture_vertices: Vec<Vector3<f64>> = Vec::new();
 
             for vertex in face {
                 vertices.push(self.vertices[(vertex.vertex - 1) as usize]);
+                texture_vertices.push(self.textures[(vertex.texture - 1) as usize]);
             }
 
             let intensity = Object::calc_intensity(&vertices);
@@ -135,15 +196,16 @@ impl Object {
             if intensity <= 0. {
                 continue;
             }
-            self.get_texture(face);
-            let color = render::color([255, 255, 255], intensity);
+            let color =
+                render_common::color(self.get_texture(&vertices, &texture_vertices), intensity);
+            // let color = self.get_texture(&vertices, &texture_vertices);
 
             for vertex in &mut vertices {
                 vertex.x = (vertex.x + 1.) * f64::from(width) / 2.0;
                 vertex.y = (vertex.y + 1.) * f64::from(height) / 2.0;
             }
 
-            Triangle::new(vertices[0], vertices[1], vertices[2], color)?.fill(renderer)?;
+            Triangle::new(vertices[0], vertices[1], vertices[2], color)?.render(renderer)?;
         }
         Ok(true)
     }
