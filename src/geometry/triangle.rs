@@ -1,32 +1,69 @@
 use std::error;
 
 use cgmath::Vector3;
+use image::{DynamicImage, GenericImageView};
+use log::{debug, warn};
 
 use crate::geometry::common::minmax;
+use crate::render::common as render_common;
 use crate::render::Renderer;
 
-pub struct Triangle {
+pub struct Triangle<'a> {
     a: Vector3<f64>,
     b: Vector3<f64>,
     c: Vector3<f64>,
-    color: Vec<[u8; 3]>,
+    texture: &'a DynamicImage,
+    texture_vertices: &'a [Vector3<f64>],
+    intensity: f64,
 }
 
-impl Triangle {
+impl<'a> Triangle<'a> {
     pub fn new(
         a: Vector3<f64>,
         b: Vector3<f64>,
         c: Vector3<f64>,
-        color: Vec<[u8; 3]>,
-    ) -> Result<Triangle, Box<error::Error>> {
-        let triangle = Triangle { a, b, c, color };
+        texture: &'a DynamicImage,
+        texture_vertices: &'a [Vector3<f64>],
+        intensity: f64,
+    ) -> Result<Triangle<'a>, Box<error::Error>> {
+        let triangle: Triangle<'a> = Triangle {
+            a,
+            b,
+            c,
+            texture,
+            texture_vertices,
+            intensity,
+        };
         Ok(triangle)
     }
 
-    pub fn sort_vertices(&self) -> Vec<Vector3<f64>> {
-        let mut vertices: Vec<Vector3<f64>> = vec![self.a, self.b, self.c];
-        vertices.sort_by(|a, b| a.y.partial_cmp(&b.y).unwrap());
-        vertices
+    pub fn get_color(&self, barycenter: Vector3<f64>) -> [u8; 3] {
+        let mut coords = self.texture_vertices.to_vec();
+
+        for coord in coords.iter_mut() {
+            coord.x *= f64::from(self.texture.width());
+            coord.y *= f64::from(self.texture.height());
+        }
+
+        let coord = coords[0] * barycenter.x + coords[1] * barycenter.y + coords[2] * barycenter.z;
+
+        let x = coord.x.round() as u32;
+        let y = coord.y.round() as u32;
+
+        if self.texture.in_bounds(x, y) {
+            let pixel = self.texture.get_pixel(x, y);
+            debug!("Pixel: {:#?}", pixel);
+            debug!("Pixel R, G, B: {}, {}, {}", pixel[0], pixel[1], pixel[2]);
+            return [pixel[0], pixel[1], pixel[2]];
+        }
+        warn!(
+            "Requested color outside texture bounds: {}, {}, {}, {}",
+            x,
+            y,
+            self.texture.width(),
+            self.texture.height(),
+        );
+        [255, 255, 255]
     }
 
     fn barycentric(&self, vertex: Vector3<f64>) -> Vector3<f64> {
@@ -49,12 +86,10 @@ impl Triangle {
     }
 
     pub fn render(&self, renderer: &mut impl Renderer) -> Result<bool, Box<error::Error>> {
-        let vertices = self.sort_vertices();
+        let (min, max) = minmax(&[self.a, self.b, self.c]);
 
-        let (min, max) = minmax(&vertices);
-
-        for x in min.x as i32 - 1..=max.x as i32 + 1 {
-            for y in min.y as i32 - 1..=max.y as i32 + 1 {
+        for x in min.x.round() as u32..=max.x.round() as u32 {
+            for y in min.y.round() as u32..=max.y.round() as u32 {
                 let vertex = Vector3::new(f64::from(x), f64::from(y), 0.);
                 let barycenter = self.barycentric(vertex);
                 if barycenter.x < 0. || barycenter.y < 0. || barycenter.z < 0. {
@@ -64,15 +99,9 @@ impl Triangle {
 
                 let pixel: Vector3<f64> = Vector3::new(f64::from(x), f64::from(y), z);
 
-                let color = match self.color.get(
-                    (((max.x - min.x) as i32 * (x - min.x as i32 - 1)) + (y - min.y as i32 - 1))
-                        as usize,
-                ) {
-                    Some(color) => color,
-                    None => &self.color[0],
-                };
+                let color = render_common::color(self.get_color(barycenter), self.intensity);
 
-                renderer.set_pixel(pixel, color.clone());
+                renderer.set_pixel(pixel, color);
             }
         }
 
