@@ -24,8 +24,21 @@ impl Renderer for PNG {
     }
 
     fn set_pixel(&mut self, pixel: Vector3<f64>, color: [u8; 3]) {
-        if self.zindex[(pixel.x + pixel.y * f64::from(self.width)) as usize] < pixel.z {
-            self.zindex[(pixel.x + pixel.y * f64::from(self.width)) as usize] = pixel.z;
+        if pixel.x > f64::from(self.width - 1)
+            || pixel.x < 0.
+            || pixel.y > f64::from(self.height - 1)
+            || pixel.y < 0.
+        {
+            return;
+        }
+        let zindex = (pixel.x + pixel.y * f64::from(self.width)) as usize;
+
+        if self.zindex.get(zindex).is_none() {
+            return;
+        }
+
+        if self.zindex[zindex] < pixel.z {
+            self.zindex[zindex] = pixel.z;
             self.image[pixel.y as usize][pixel.x as usize] = color;
         }
     }
