@@ -143,15 +143,11 @@ impl Object {
                 vertex.y = (vertex.y + 1.) * f64::from(height) / 2.0;
             }
 
-            for (index, vertex) in &mut vertices.iter().enumerate() {
-                if vertices.get(index + 2).is_none() {
-                    break;
-                }
-
+            for index in 1..vertices.len() - 1 {
                 Triangle::new(
-                    *vertex,
+                    vertices[0],
+                    vertices[index],
                     vertices[index + 1],
-                    vertices[index + 2],
                     &self.texture,
                     &texture_vertices,
                     intensity,
